@@ -42,12 +42,33 @@ class HiddenMarkovModel:
         """        
         
         # Step 1. Initialize variables
+
+        T = len(input_observation_states)
+        N = self.hidden_states.shape[0]
+
+        fwrd_mat = np.zeros((N, T))
+
+        for s in range(N):
+            state_initial_index = self.observation_states_dict[input_observation_states[0]]
+
+            fwrd_mat[s, 0] = self.prior_p[s] * self.emission_p[s, state_initial_index]
         
        
         # Step 2. Calculate probabilities
 
+        for t in range(1, T):
+
+            my_state_index = self.observation_states_dict[input_observation_states[t]]
+
+            for s in range(N):
+                # got this clean summation idea across the rows of the matrix from ChatGPT
+                fwrd_mat[s, t] = np.sum(fwrd_mat[:, t-1]* self.transition_p[:, s] * self.emission_p[s, my_state_index])
+                 
+        forwardprob = np.sum(fwrd_mat[:,-1])
 
         # Step 3. Return final probability 
+
+        return forwardprob
         
 
 
@@ -66,17 +87,48 @@ class HiddenMarkovModel:
         
         # Step 1. Initialize variables
         
-        #store probabilities of hidden state at each step 
-        viterbi_table = np.zeros((len(decode_observation_states), len(self.hidden_states)))
         #store best path for traceback
-        best_path = np.zeros(len(decode_observation_states))         
-        
+        best_path = np.zeros(len(decode_observation_states), dtype=int)
+        #I believe this should be the same length 
+    
+        N = self.hidden_states.shape[0]
+        T = len(decode_observation_states)
+
+         #store probabilities of hidden state at each step 
+        viterbi_table = np.zeros((N, T))
+
+        back_pointer = np.zeros((N, T), dtype=int)
+
        
        # Step 2. Calculate Probabilities
-
-            
+        for s in range(N):
+                state_initial_index = self.observation_states_dict[decode_observation_states[0]]
+                viterbi_table[s, 0] = self.prior_p[s] * self.emission_p[s, state_initial_index]
+                back_pointer[s, 0] = 0
+        for t in range(1, T):
+                my_state_index = self.observation_states_dict[decode_observation_states[t]]
+                for s in range(N):
+                     possible_values = viterbi_table[:, t-1] * self.transition_p[:, s]
+                     viterbi_table[s, t] = np.max(possible_values)*self.emission_p[s, my_state_index]
+                     back_pointer[s, t] = np.argmax(possible_values)
+        
         # Step 3. Traceback 
 
+        best_path_prob = np.max(viterbi_table[:,-1])
+        best_path_pointer = np.argmax(viterbi_table[:,-1])
 
+        # TO DO: create bestpath, starting at state best_path_pointer, 
+        # follows back_pointer to states back in time
+
+        best_path[-1] = best_path_pointer
+
+        #asked chatgpt for help in figuring out indexing in this line
+        for state in range(T-2, -1, -1):
+             best_path[state] = back_pointer[best_path[state+1], state+1]
+             
         # Step 4. Return best hidden state sequence 
+
+        best_hidden_state_sequence = [str(self.hidden_states[i]) for i in best_path]
+
+        return best_hidden_state_sequence, best_path_prob
         
