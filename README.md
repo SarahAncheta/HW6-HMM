@@ -1,5 +1,7 @@
 # HW6-HMM
 
+[![Project Tests](https://github.com/SarahAncheta/HW6-HMM/actions/workflows/python-app.yml/badge.svg)](https://github.com/SarahAncheta/HW6-HMM/actions/workflows/python-app.yml)
+
 Sarah Ancheta
 
 In this assignment, I implemented the Forward and Viterbi Algorithms (dynamic programming). 
